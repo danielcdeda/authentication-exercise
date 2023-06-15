@@ -1,5 +1,4 @@
 require('dotenv').config()
-console.log(process.env) // remove this after you've confirmed it is working
 const express = require('express');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
