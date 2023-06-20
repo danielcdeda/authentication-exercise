@@ -2,7 +2,8 @@ require('dotenv').config()
 const express = require('express');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
  
 const app = express();
  
@@ -34,20 +35,22 @@ async function main() {
     });
  
     app.post("/register",async(req,res)=>{
-        try {
-            const newUser = new User({
-                email:req.body.username,
-                password:md5(req.body.password)
-            });
-            const result = await newUser.save();
-            if(result){
-                res.render('secrets');
-            }else{
-                console.log("Login Failed");
+        bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+            try {
+                const newUser = new User({
+                    email:req.body.username,
+                    password: hash
+                });
+                const result = newUser.save();
+                if(result){
+                    res.render('secrets');
+                }else{
+                    console.log("Login Failed");
+                }
+            } catch (err) {
+                console.log(err);
             }
-        } catch (err) {
-            console.log(err);
-        }
+        });
     });
  
  
@@ -57,7 +60,7 @@ async function main() {
     
     app.post("/login",async(req,res)=>{
         const username = req.body.username;
-        const password = md5(req.body.password);
+        const password = hash
  
         try {
             const foundName = await User.findOne({email:username})
