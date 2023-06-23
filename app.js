@@ -60,13 +60,17 @@ async function main() {
     
     app.post("/login",async(req,res)=>{
         const username = req.body.username;
-        const password = hash
+        const password = req.body.password;
  
         try {
             const foundName = await User.findOne({email:username})
             if(foundName){
                 if(foundName.password===password){
-                    res.render('secrets');
+                    bcrypt.compare(password, foundName.password, function(err, result) {
+                        if (result === true) {
+                            res.render('secrets');
+                        }
+                    });
                 }else{
                     console.log('Password Does not Match...Try Again !')
                 }
