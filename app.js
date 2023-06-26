@@ -2,9 +2,9 @@ require('dotenv').config()
 const express = require('express');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
-const session = require('express-session')
+const session = require('express-session');
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
  
 const app = express();
  
@@ -14,7 +14,17 @@ app.use(express.urlencoded({extended:true}));
  
  
 main().catch(err => console.log(err));
+
+app.use(session({
+    secret: 'Little secret',
+    resave: false,
+    saveUninitialized: false,
+  }))
  
+app.use(passport.initialize());
+app.use(passport.session());
+
+
 async function main() {
   await mongoose.connect('mongodb://127.0.0.1:27017/userDB');
     // use `await mongoose.connect('mongodb://user:password@127.0.0.1:27017/test');` if your database has auth enabled
@@ -23,10 +33,15 @@ async function main() {
         password:String
     });
 
-
+    userSchema.plugin(passportLocalMongoose);
  
     const User = mongoose.model('User',userSchema);
- 
+    
+    passport.use(User.createStrategy());
+
+    passport.serializeUser(User.serializeUser());
+    passport.deserializeUser(User.deserializeUser());
+    
     app.get("/",(req,res)=>{
         res.render('home');
     });
@@ -36,22 +51,7 @@ async function main() {
     });
  
     app.post("/register",async(req,res)=>{
-        bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
-            try {
-                const newUser = new User({
-                    email:req.body.username,
-                    password: hash
-                });
-                const result = newUser.save();
-                if(result){
-                    res.render('secrets');
-                }else{
-                    console.log("Login Failed");
-                }
-            } catch (err) {
-                console.log(err);
-            }
-        });
+       
     });
  
  
@@ -60,27 +60,7 @@ async function main() {
     });
     
     app.post("/login",async(req,res)=>{
-        const username = req.body.username;
-        const password = req.body.password;
- 
-        try {
-            const foundName = await User.findOne({email:username})
-            if(foundName){
-                if(foundName.password===password){
-                    bcrypt.compare(password, foundName.password, function(err, result) {
-                        if (result === true) {
-                            res.render('secrets');
-                        }
-                    });
-                }else{
-                    console.log('Password Does not Match...Try Again !')
-                }
-            }else{
-                console.log("User Not found...")
-            }
-        } catch (err) {
-            console.log(err);
-        }
+        
     });
     
     app.listen(3000,()=>{
