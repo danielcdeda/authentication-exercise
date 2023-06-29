@@ -41,7 +41,7 @@ async function main() {
 
     passport.serializeUser(User.serializeUser());
     passport.deserializeUser(User.deserializeUser());
-    
+
     app.get("/",(req,res)=>{
         res.render('home');
     });
@@ -49,9 +49,28 @@ async function main() {
     app.get("/register",(req,res)=>{
         res.render('register');
     });
+
+    app.get("/secrets", (req, res)=>{
+        if (req.isAuthenticated) {
+            res.redirect("/secrets")
+        }
+        else {
+            res.redirect("/login")
+        }
+    })
  
     app.post("/register",async(req,res)=>{
-       
+       User.register({username: req.body.username}, req.body.password, function (err, user){
+        if (err) {
+            console.log(err);
+            res.redirect("/register");
+        }
+         else {
+            passport.authenticate("local")(req, res, function(){
+                res.redirect("/secrets");
+            });
+         }
+       })
     });
  
  
@@ -60,7 +79,22 @@ async function main() {
     });
     
     app.post("/login",async(req,res)=>{
-        
+        const user = new User ({
+            username: req.body.username,
+            password: req.body.password
+        });
+
+        req.login(user, function(err){
+            if(err){
+                console.log(err)
+            } else {
+                passport.authenticate("local")(req,res, function(){
+                    res.redirect("/secrets");
+                });
+            }
+
+        });
+
     });
     
     app.listen(3000,()=>{
